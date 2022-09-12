@@ -24,18 +24,18 @@ func Redact[T any](obj T) T {
 	typeOf := reflect.TypeOf(interfaceValue)
 	kind := typeOf.Kind()
 
-	switch {
-	case kind == reflect.Array || kind == reflect.Slice:
+	switch kind {
+	case reflect.Array, reflect.Slice:
 		return handleIteratable(interfaceValue).(T)
-	case kind == reflect.Map:
+	case reflect.Map:
 		return handleMap(interfaceValue).(T)
-	case kind == reflect.Pointer || kind == reflect.UnsafePointer:
+	case reflect.Pointer, reflect.UnsafePointer:
 		return handlePointer(interfaceValue).(T)
-	case kind == reflect.Struct:
+	case reflect.Struct:
 		return *redact(interfaceValue).(*T)
+	default:
+		return interfaceValue.(T)
 	}
-
-	return interfaceValue.(T)
 }
 
 func handleIteratable(obj any) any {
@@ -49,23 +49,24 @@ func handleIteratable(obj any) any {
 		elemInterface := elem.Interface()
 		elemKind := elem.Kind()
 
-		switch {
-		case elemKind == reflect.Array || elemKind == reflect.Slice:
+		switch elemKind {
+		case reflect.Array, reflect.Slice:
 			elemValue := reflect.ValueOf(handleIteratable(elemInterface))
 			elem.Set(elemValue)
-		case elemKind == reflect.Map:
+		case reflect.Map:
 			elemValue := reflect.ValueOf(handleMap(elemInterface))
 			elem.Set(elemValue)
-		case elemKind == reflect.Pointer || elemKind == reflect.UnsafePointer:
+		case reflect.Pointer, reflect.UnsafePointer:
 			elemValue := reflect.ValueOf(handlePointer(elemInterface))
 			if elemValue.Kind() != reflect.Pointer {
 				elem.Elem().Set(elemValue)
 			} else {
 				elem.Set(elemValue)
 			}
-		case elemKind == reflect.Struct:
+		case reflect.Struct:
 			elemValue := reflect.ValueOf(redact(elemInterface))
 			elem.Set(elemValue.Elem())
+		default:
 		}
 	}
 
@@ -88,27 +89,28 @@ func handleMap(obj any) any {
 		keyInterface := handleMapKey(key.Interface())
 		key = reflect.ValueOf(keyInterface)
 
-		switch {
-		case elemKind == reflect.Array || elemKind == reflect.Slice:
+		switch elemKind {
+		case reflect.Array, reflect.Slice:
 			elemValue := reflect.ValueOf(handleIteratable(elemInterface))
 			valueOf.SetMapIndex(key, elemValue)
-		case elemKind == reflect.Map:
+		case reflect.Map:
 			elemValue := reflect.ValueOf(handleMap(elemInterface))
 			if elemValue.Kind() != reflect.Pointer {
 				elem.Elem().SetMapIndex(key, elemValue)
 			} else {
 				elem.SetMapIndex(key, elemValue)
 			}
-		case elemKind == reflect.Pointer || elemKind == reflect.UnsafePointer:
+		case reflect.Pointer, reflect.UnsafePointer:
 			elemValue := reflect.ValueOf(handlePointer(elemInterface))
 			if elemValue.Kind() != reflect.Pointer {
 				valueOf.SetMapIndex(key, elemValue.Elem())
 			} else {
 				valueOf.SetMapIndex(key, elemValue)
 			}
-		case elemKind == reflect.Struct:
+		case reflect.Struct:
 			elemValue := reflect.ValueOf(redact(elemInterface))
 			valueOf.SetMapIndex(key, elemValue.Elem())
+		default:
 		}
 	}
 
@@ -120,45 +122,45 @@ func handlePointer(obj any) any {
 	kind := typeOf.Elem().Kind()
 	valueOf := reflect.ValueOf(obj).Elem().Interface()
 
-	switch {
-	case kind == reflect.Array || kind == reflect.Slice:
+	switch kind {
+	case reflect.Array, reflect.Slice:
 		handledValue := handleIteratable(valueOf)
 		tmpObj := reflect.New(reflect.TypeOf(handledValue))
 		tmpObj.Elem().Set(reflect.ValueOf(handledValue))
 		return tmpObj.Interface()
-	case kind == reflect.Map:
+	case reflect.Map:
 		handledValue := handleMap(valueOf)
 		tmpObj := reflect.New(reflect.TypeOf(handledValue))
 		tmpObj.Elem().Set(reflect.ValueOf(handledValue))
 		return tmpObj.Interface()
-	case kind == reflect.Pointer || kind == reflect.UnsafePointer:
+	case reflect.Pointer, reflect.UnsafePointer:
 		handledValue := handlePointer(valueOf)
 		tmpObj := reflect.New(reflect.TypeOf(handledValue))
 		tmpObj.Elem().Set(reflect.ValueOf(handledValue))
 		return tmpObj.Interface()
-	case kind == reflect.Struct:
+	case reflect.Struct:
 		return redact(valueOf)
+	default:
+		return obj
 	}
-
-	return obj
 }
 
 func handleMapKey(key any) any {
 	typeOf := reflect.TypeOf(key)
 	kind := typeOf.Kind()
 
-	switch {
-	case kind == reflect.Array || kind == reflect.Slice:
+	switch kind {
+	case reflect.Array, reflect.Slice:
 		return handleIteratable(key)
-	case kind == reflect.Map:
+	case reflect.Map:
 		return handleMap(key)
-	case kind == reflect.Pointer || kind == reflect.UnsafePointer:
+	case reflect.Pointer, reflect.UnsafePointer:
 		return handlePointer(key)
-	case kind == reflect.Struct:
+	case reflect.Struct:
 		return reflect.ValueOf(redact(key)).Elem().Interface()
+	default:
+		return key
 	}
-
-	return key
 }
 
 func redact(obj any) any {
@@ -178,17 +180,17 @@ func redact(obj any) any {
 		kind := fieldVal.Type().Kind()
 		fieldValInt := fieldVal.Interface()
 
-		switch {
-		case kind == reflect.Struct:
+		switch kind {
+		case reflect.Struct:
 			redactedVal := redact(fieldValInt)
 			fieldVal.Set(reflect.ValueOf(redactedVal).Elem())
-		case kind == reflect.Array || kind == reflect.Slice:
+		case reflect.Array, reflect.Slice:
 			redactedVal := handleIteratable(fieldValInt)
 			fieldVal.Set(reflect.ValueOf(redactedVal))
-		case kind == reflect.Pointer || kind == reflect.UnsafePointer:
+		case reflect.Pointer, reflect.UnsafePointer:
 			redactedVal := handlePointer(fieldValInt)
 			fieldVal.Set(reflect.ValueOf(redactedVal))
-		case kind == reflect.Map:
+		case reflect.Map:
 			redactedVal := handleMap(fieldValInt)
 			fieldVal.Set(reflect.ValueOf(redactedVal))
 		}
