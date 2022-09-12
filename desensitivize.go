@@ -1,4 +1,4 @@
-package sensify
+package desensitivize
 
 import (
 	"bytes"

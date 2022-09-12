@@ -1,3 +1,3 @@
-module github.com/xxbtwxx/sensify
+module github.com/xxbtwxx/desensitivize
 
 go 1.19
