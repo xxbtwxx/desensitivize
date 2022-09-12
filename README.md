@@ -1,4 +1,4 @@
-# sensify
+# desensitivize
 A library for redacting sensitive info from data containers
 
 ## Usage
@@ -17,7 +17,7 @@ type SomeStruct struct {
 
 func doStuff(someStruct SomeStruct) {
   fmt.Println(someStruct)
-  removedSensitiveDataStruct := sensify.Redact(someStruct)
+  removedSensitiveDataStruct := desensitivize.Redact(someStruct)
   fmt.Println(removedSensitiveDataStruct)
   fmt.Println(someStruct)
 }
@@ -39,5 +39,8 @@ The output of the following code would be the following one
 {field A data field B sensitive data}
 ```
 
+### Beware
+If you pass a map with `struct` keys which struct has fields marked as `sensitive` it would redact the keys too which may lead to collisions and loss of data
 
-NOTE: This package is still in experimental stage and may occasionally throw a panic
+# NOTE
+This package is still in experimental stage and may occasionally throw a panic
