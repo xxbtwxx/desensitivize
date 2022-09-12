@@ -7,9 +7,9 @@ import (
 )
 
 func copyObj[T any](obj T) (objCopy T) {
-	var mod bytes.Buffer
-	enc := gob.NewEncoder(&mod)
-	dec := gob.NewDecoder(&mod)
+	var buf bytes.Buffer
+	enc := gob.NewEncoder(&buf)
+	dec := gob.NewDecoder(&buf)
 
 	enc.Encode(obj)
 	dec.Decode(&objCopy)
@@ -184,6 +184,12 @@ func redact(obj any) any {
 			fieldVal.Set(reflect.ValueOf(redactedVal).Elem())
 		case kind == reflect.Array || kind == reflect.Slice:
 			redactedVal := handleIteratable(fieldValInt)
+			fieldVal.Set(reflect.ValueOf(redactedVal))
+		case kind == reflect.Pointer || kind == reflect.UnsafePointer:
+			redactedVal := handlePointer(fieldValInt)
+			fieldVal.Set(reflect.ValueOf(redactedVal))
+		case kind == reflect.Map:
+			redactedVal := handleMap(fieldValInt)
 			fieldVal.Set(reflect.ValueOf(redactedVal))
 		}
 
