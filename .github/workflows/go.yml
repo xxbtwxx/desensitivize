@@ -1,0 +1,22 @@
+name: Go
+
+on:
+  push:
+    branches: [ "master" ]
+  pull_request:
+    branches: [ "master" ]
+
+jobs:
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Test package
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.19
+        
+    - name: Run tests
+      run: go test -v ./...
