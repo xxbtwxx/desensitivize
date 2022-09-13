@@ -46,6 +46,8 @@ func TestRedact_struct(t *testing.T) {
 			MapFieldInlinePRedactKeys map[*MapKey]struct{}
 			ArrStruct                 []StructField
 			ArrPStruct                []*StructField
+			PArrStruct                *[]StructField
+			PArrPStruct               *[]*StructField
 		}
 	)
 
@@ -90,8 +92,10 @@ func TestRedact_struct(t *testing.T) {
 				F3: "321",
 			}: {},
 		},
-		ArrStruct:  []StructField{{}},
-		ArrPStruct: []*StructField{{}},
+		ArrStruct:   []StructField{{}},
+		ArrPStruct:  []*StructField{{}},
+		PArrStruct:  &[]StructField{{}},
+		PArrPStruct: &[]*StructField{{}},
 	}
 	testStrCpy := testStr
 
@@ -114,12 +118,14 @@ func TestRedact_struct(t *testing.T) {
 		MapFieldInlinePRedactKeys: map[*MapKey]struct{}{
 			{F3: "321"}: {},
 		},
-		ArrStruct:  []StructField{{}},
-		ArrPStruct: []*StructField{{}},
+		ArrStruct:   []StructField{{}},
+		ArrPStruct:  []*StructField{{}},
+		PArrPStruct: &[]*StructField{{}},
+		PArrStruct:  &[]StructField{{}},
 	})
 	require.Nil(t, err)
 
-	require.Equal(t, expectedBuf, redactedBuf)
+	require.Equal(t, expectedBuf.String(), redactedBuf.String())
 
 	require.Equal(t, testStr, testStrCpy)
 }

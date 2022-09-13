@@ -39,7 +39,7 @@ func Redact[T any](obj T) T {
 }
 
 func handleIteratable(obj reflect.Value) reflect.Value {
-	if obj.Kind() == reflect.Ptr {
+	if obj.Kind() == reflect.Pointer {
 		obj = obj.Elem()
 	}
 
@@ -85,8 +85,7 @@ func handleMap(obj reflect.Value) reflect.Value {
 
 		switch elemKind {
 		case reflect.Struct:
-			redactedVal := redact(elem)
-			obj.SetMapIndex(key, redactedVal.Elem())
+			obj.SetMapIndex(key, redact(elem).Elem())
 		case reflect.Pointer:
 			obj.SetMapIndex(key, handlePointer(elem))
 		case reflect.Slice, reflect.Array:
@@ -104,13 +103,19 @@ func handlePointer(obj reflect.Value) reflect.Value {
 
 	switch objKind {
 	case reflect.Struct:
-		redactedValue := redact(obj.Elem())
-		return redactedValue
+		return redact(obj.Elem())
 	case reflect.Pointer:
 		redactedValue := handlePointer(obj)
 		tmpObj := reflect.New(objType)
 		tmpObj.Elem().Set(redactedValue)
 		return tmpObj
+	case reflect.Array, reflect.Slice:
+		redactedValue := handleIteratable(obj)
+		tmpObj := reflect.New(objType.Elem())
+		tmpObj.Elem().Set(redactedValue)
+		return tmpObj
+	case reflect.Map:
+		return handleMap(obj)
 	}
 
 	return obj
@@ -164,7 +169,7 @@ func redact(obj reflect.Value) reflect.Value {
 			fieldVal.Set(redactedVal)
 		case reflect.Pointer:
 			redactedVal := handlePointer(fieldVal)
-			fieldVal.Elem().Set(redactedVal.Elem())
+			fieldVal.Set(redactedVal)
 		}
 	}
 
