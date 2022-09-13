@@ -48,6 +48,8 @@ func TestRedact_struct(t *testing.T) {
 			ArrPStruct                []*StructField
 			PArrStruct                *[]StructField
 			PArrPStruct               *[]*StructField
+			MapArrayKey               map[[1]MapKey]struct{}
+			MapPArrayKey              map[*[1]MapKey]struct{}
 		}
 	)
 
@@ -96,6 +98,18 @@ func TestRedact_struct(t *testing.T) {
 		ArrPStruct:  []*StructField{{}},
 		PArrStruct:  &[]StructField{{}},
 		PArrPStruct: &[]*StructField{{}},
+		MapArrayKey: map[[1]MapKey]struct{}{
+			{{
+				F1: "123",
+				F3: "321",
+			}}: {},
+		},
+		MapPArrayKey: map[*[1]MapKey]struct{}{
+			{{
+				F1: "123",
+				F3: "321",
+			}}: {},
+		},
 	}
 	testStrCpy := testStr
 
@@ -122,6 +136,16 @@ func TestRedact_struct(t *testing.T) {
 		ArrPStruct:  []*StructField{{}},
 		PArrPStruct: &[]*StructField{{}},
 		PArrStruct:  &[]StructField{{}},
+		MapArrayKey: map[[1]MapKey]struct{}{
+			{{
+				F3: "321",
+			}}: {},
+		},
+		MapPArrayKey: map[*[1]MapKey]struct{}{
+			{{
+				F3: "321",
+			}}: {},
+		},
 	})
 	require.Nil(t, err)
 
