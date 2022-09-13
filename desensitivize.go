@@ -33,6 +33,8 @@ func Redact[T any](obj T) T {
 		return handleSlice(objValue).Interface().(T)
 	case reflect.Map:
 		return handleMap(objValue).Interface().(T)
+	case reflect.Array:
+		return handleArray(objValue).Interface().(T)
 	}
 
 	return obj
@@ -165,7 +167,7 @@ func handleArray(obj reflect.Value) reflect.Value {
 		case reflect.Map:
 			newEl.Set(handleMap(element).Elem())
 		case reflect.Pointer:
-			newEl.Set(handlePointer(element).Elem())
+			newEl.Set(handlePointer(element))
 		}
 	}
 
@@ -204,6 +206,9 @@ func redact(obj reflect.Value) reflect.Value {
 		case reflect.Pointer:
 			redactedVal := handlePointer(fieldVal)
 			fieldVal.Set(redactedVal)
+		case reflect.Array:
+			redactedVal := handleArray(fieldVal)
+			fieldVal.Set(redactedVal.Elem())
 		}
 	}
 
