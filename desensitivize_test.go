@@ -9,7 +9,6 @@ import (
 )
 
 func TestRedact_struct(t *testing.T) {
-
 	type (
 		StructField struct {
 			F1 string
@@ -45,6 +44,8 @@ func TestRedact_struct(t *testing.T) {
 			PStructFieldInlinePRedact *StructFieldInlinePRedact
 			MapFieldInlineRedactKeys  map[MapKey]struct{}
 			MapFieldInlinePRedactKeys map[*MapKey]struct{}
+			ArrStruct                 []StructField
+			ArrPStruct                []*StructField
 		}
 	)
 
@@ -89,6 +90,8 @@ func TestRedact_struct(t *testing.T) {
 				F3: "321",
 			}: {},
 		},
+		ArrStruct:  []StructField{{}},
+		ArrPStruct: []*StructField{{}},
 	}
 	testStrCpy := testStr
 
@@ -111,6 +114,8 @@ func TestRedact_struct(t *testing.T) {
 		MapFieldInlinePRedactKeys: map[*MapKey]struct{}{
 			{F3: "321"}: {},
 		},
+		ArrStruct:  []StructField{{}},
+		ArrPStruct: []*StructField{{}},
 	})
 	require.Nil(t, err)
 

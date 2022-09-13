@@ -20,186 +20,152 @@ func copyObj[T any](obj T) (objCopy T) {
 func Redact[T any](obj T) T {
 	objCopy := copyObj(obj)
 
-	interfaceValue := reflect.ValueOf(objCopy).Interface()
-	typeOf := reflect.TypeOf(interfaceValue)
-	kind := typeOf.Kind()
+	objValue := reflect.ValueOf(objCopy)
+	objType := objValue.Type()
+	objKind := objType.Kind()
 
-	switch kind {
-	case reflect.Array, reflect.Slice:
-		return handleIteratable(interfaceValue).(T)
-	case reflect.Map:
-		return handleMap(interfaceValue).(T)
-	case reflect.Pointer, reflect.UnsafePointer:
-		return handlePointer(interfaceValue).(T)
+	switch objKind {
 	case reflect.Struct:
-		return *redact(interfaceValue).(*T)
-	default:
-		return interfaceValue.(T)
+		return *redact(objValue).Interface().(*T)
+	case reflect.Pointer:
+		return handlePointer(objValue).Interface().(T)
+	case reflect.Array, reflect.Slice:
+		return handleIteratable(objValue).Interface().(T)
+	case reflect.Map:
+		return handleMap(objValue).Interface().(T)
 	}
+
+	return obj
 }
 
-func handleIteratable(obj any) any {
-	valueOf := reflect.ValueOf(obj)
-	if valueOf.Kind() == reflect.Ptr {
-		valueOf = valueOf.Elem()
+func handleIteratable(obj reflect.Value) reflect.Value {
+	if obj.Kind() == reflect.Ptr {
+		obj = obj.Elem()
 	}
 
-	for i := 0; i < valueOf.Len(); i++ {
-		elem := valueOf.Index(i)
-		elemInterface := elem.Interface()
-		elemKind := elem.Kind()
+	for i := 0; i < obj.Len(); i++ {
+		indexVal := obj.Index(i)
+		indexKind := indexVal.Kind()
 
-		switch elemKind {
-		case reflect.Array, reflect.Slice:
-			elemValue := reflect.ValueOf(handleIteratable(elemInterface))
-			elem.Set(elemValue)
-		case reflect.Map:
-			elemValue := reflect.ValueOf(handleMap(elemInterface))
-			elem.Set(elemValue)
-		case reflect.Pointer, reflect.UnsafePointer:
-			elemValue := reflect.ValueOf(handlePointer(elemInterface))
-			if elemValue.Kind() != reflect.Pointer {
-				elem.Elem().Set(elemValue)
-			} else {
-				elem.Set(elemValue)
-			}
+		switch indexKind {
 		case reflect.Struct:
-			elemValue := reflect.ValueOf(redact(elemInterface))
-			elem.Set(elemValue.Elem())
-		default:
+			redactedVal := redact(indexVal)
+			indexVal.Set(redactedVal.Elem())
+		case reflect.Pointer:
+			redactedVal := handlePointer(indexVal)
+			indexVal.Elem().Set(redactedVal.Elem())
+		case reflect.Slice, reflect.Array:
+			redactedVal := handleIteratable(indexVal)
+			indexVal.Elem().Set(redactedVal)
+		case reflect.Map:
+			redactedVal := handleMap(indexVal)
+			indexVal.Elem().Set(redactedVal)
 		}
 	}
 
 	return obj
 }
 
-func handleMap(obj any) any {
-	valueOf := reflect.ValueOf(obj)
-	if valueOf.Kind() == reflect.Ptr {
-		valueOf = valueOf.Elem()
+func handleMap(obj reflect.Value) reflect.Value {
+	if obj.Kind() == reflect.Pointer {
+		obj = obj.Elem()
 	}
 
-	keys := valueOf.MapKeys()
+	keys := obj.MapKeys()
 	for _, key := range keys {
-		elem := valueOf.MapIndex(key)
-		elemInterface := elem.Interface()
+		elem := obj.MapIndex(key)
 		elemKind := elem.Kind()
+		keyKind := key.Kind()
+		obj.SetMapIndex(key, reflect.Value{})
+		key = handleMapKey(key)
 
-		valueOf.SetMapIndex(key, reflect.Value{})
-		keyInterface := handleMapKey(key.Interface())
-		key = reflect.ValueOf(keyInterface)
+		if key.Kind() == reflect.Pointer && keyKind != reflect.Pointer {
+			key = key.Elem()
+		}
 
 		switch elemKind {
-		case reflect.Array, reflect.Slice:
-			elemValue := reflect.ValueOf(handleIteratable(elemInterface))
-			valueOf.SetMapIndex(key, elemValue)
-		case reflect.Map:
-			elemValue := reflect.ValueOf(handleMap(elemInterface))
-			if elemValue.Kind() != reflect.Pointer {
-				elem.Elem().SetMapIndex(key, elemValue)
-			} else {
-				elem.SetMapIndex(key, elemValue)
-			}
-		case reflect.Pointer, reflect.UnsafePointer:
-			elemValue := reflect.ValueOf(handlePointer(elemInterface))
-			if elemValue.Kind() != reflect.Pointer {
-				valueOf.SetMapIndex(key, elemValue.Elem())
-			} else {
-				valueOf.SetMapIndex(key, elemValue)
-			}
 		case reflect.Struct:
-			elemValue := reflect.ValueOf(redact(elemInterface))
-			valueOf.SetMapIndex(key, elemValue.Elem())
-		default:
+			redactedVal := redact(elem)
+			obj.SetMapIndex(key, redactedVal.Elem())
+		case reflect.Pointer:
+			obj.SetMapIndex(key, handlePointer(elem))
+		case reflect.Slice, reflect.Array:
+			obj.SetMapIndex(key, handleIteratable(elem))
+		case reflect.Map:
+			obj.SetMapIndex(key, handleMap(elem))
 		}
+	}
+	return obj
+}
+
+func handlePointer(obj reflect.Value) reflect.Value {
+	objType := obj.Type()
+	objKind := objType.Elem().Kind()
+
+	switch objKind {
+	case reflect.Struct:
+		redactedValue := redact(obj.Elem())
+		return redactedValue
+	case reflect.Pointer:
+		redactedValue := handlePointer(obj)
+		tmpObj := reflect.New(objType)
+		tmpObj.Elem().Set(redactedValue)
+		return tmpObj
 	}
 
 	return obj
 }
 
-func handlePointer(obj any) any {
-	typeOf := reflect.TypeOf(obj)
-	kind := typeOf.Elem().Kind()
-	valueOf := reflect.ValueOf(obj).Elem().Interface()
-
-	switch kind {
-	case reflect.Array, reflect.Slice:
-		handledValue := handleIteratable(valueOf)
-		tmpObj := reflect.New(reflect.TypeOf(handledValue))
-		tmpObj.Elem().Set(reflect.ValueOf(handledValue))
-		return tmpObj.Interface()
-	case reflect.Map:
-		handledValue := handleMap(valueOf)
-		tmpObj := reflect.New(reflect.TypeOf(handledValue))
-		tmpObj.Elem().Set(reflect.ValueOf(handledValue))
-		return tmpObj.Interface()
-	case reflect.Pointer, reflect.UnsafePointer:
-		handledValue := handlePointer(valueOf)
-		tmpObj := reflect.New(reflect.TypeOf(handledValue))
-		tmpObj.Elem().Set(reflect.ValueOf(handledValue))
-		return tmpObj.Interface()
-	case reflect.Struct:
-		return redact(valueOf)
-	default:
-		return obj
-	}
-}
-
-func handleMapKey(key any) any {
-	typeOf := reflect.TypeOf(key)
+func handleMapKey(key reflect.Value) reflect.Value {
+	typeOf := key.Type()
 	kind := typeOf.Kind()
 
 	switch kind {
+	case reflect.Struct:
+		return redact(key)
 	case reflect.Array, reflect.Slice:
 		return handleIteratable(key)
 	case reflect.Map:
-		return handleMap(key)
-	case reflect.Pointer, reflect.UnsafePointer:
+		return handleMapKey(key)
+	case reflect.Pointer:
 		return handlePointer(key)
-	case reflect.Struct:
-		return reflect.ValueOf(redact(key)).Elem().Interface()
-	default:
-		return key
 	}
+	return key
 }
 
-func redact(obj any) any {
-	if reflect.TypeOf(obj).Kind() != reflect.Ptr {
-		tmpObj := reflect.New(reflect.TypeOf(obj))
-		tmpObj.Elem().Set(reflect.ValueOf(obj))
+func redact(obj reflect.Value) reflect.Value {
+	if obj.Type().Kind() != reflect.Ptr {
+		tmpObj := reflect.New(obj.Type())
 
-		obj = tmpObj.Interface()
+		tmpObj.Elem().Set(obj)
+
+		obj = tmpObj
 	}
 
-	v := reflect.ValueOf(obj).Elem()
-	t := v.Type()
+	objType := obj.Type()
+	for i := 0; i < objType.Elem().NumField(); i++ {
+		fieldVal := obj.Elem().Field(i)
 
-	for i := 0; i < t.NumField(); i++ {
-		fieldVal := v.Field(i)
-
-		kind := fieldVal.Type().Kind()
-		fieldValInt := fieldVal.Interface()
-
-		switch kind {
-		case reflect.Struct:
-			redactedVal := redact(fieldValInt)
-			fieldVal.Set(reflect.ValueOf(redactedVal).Elem())
-		case reflect.Array, reflect.Slice:
-			redactedVal := handleIteratable(fieldValInt)
-			fieldVal.Set(reflect.ValueOf(redactedVal))
-		case reflect.Pointer, reflect.UnsafePointer:
-			redactedVal := handlePointer(fieldValInt)
-			fieldVal.Set(reflect.ValueOf(redactedVal))
-		case reflect.Map:
-			redactedVal := handleMap(fieldValInt)
-			fieldVal.Set(reflect.ValueOf(redactedVal))
-		}
-
-		if _, exist := t.Field(i).Tag.Lookup("sensitive"); !exist {
+		if _, exist := objType.Elem().Field(i).Tag.Lookup("sensitive"); exist {
+			fieldVal.Set(reflect.Zero(fieldVal.Type()))
 			continue
 		}
 
-		fieldVal.Set(reflect.Zero(fieldVal.Type()))
+		fieldKind := fieldVal.Kind()
+		switch fieldKind {
+		case reflect.Struct:
+			redactedVal := redact(fieldVal)
+			fieldVal.Set(redactedVal.Elem())
+		case reflect.Array, reflect.Slice:
+			redactedVal := handleIteratable(fieldVal)
+			fieldVal.Set(redactedVal)
+		case reflect.Map:
+			redactedVal := handleMap(fieldVal)
+			fieldVal.Set(redactedVal)
+		case reflect.Pointer:
+			redactedVal := handlePointer(fieldVal)
+			fieldVal.Elem().Set(redactedVal.Elem())
+		}
 	}
 
 	return obj
