@@ -8,6 +8,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func Func() {
+
+}
+
 func TestRedact_struct(t *testing.T) {
 	type (
 		StructField struct {
@@ -30,16 +34,20 @@ func TestRedact_struct(t *testing.T) {
 		}
 
 		TestStruct struct {
-			IntField                  int          `sensitive:"-"`
-			PIntField                 *int         `sensitive:"-"`
-			StrField                  string       `sensitive:"-"`
-			PStrField                 *string      `sensitive:"-"`
-			FloatField                float64      `sensitive:"-"`
-			PFloatField               *float64     `sensitive:"-"`
-			StructField               StructField  `sensitive:"-"`
-			PStructField              *StructField `sensitive:"-"`
+			IntField                  int                 `sensitive:"-"`
+			PIntField                 *int                `sensitive:"-"`
+			StrField                  string              `sensitive:"-"`
+			PStrField                 *string             `sensitive:"-"`
+			FloatField                float64             `sensitive:"-"`
+			PFloatField               *float64            `sensitive:"-"`
+			StructField               StructField         `sensitive:"-"`
+			PStructField              *StructField        `sensitive:"-"`
+			MapRedact                 map[MapKey]struct{} `sensitive:"-"`
+			SliceRedact               []StructField       `sensitive:"-"`
+			ArrRedact                 [1]StructField      `sensitive:"-"`
 			StructFieldInlineRedact   StructFieldInlineRedact
 			PStructFieldInlineRedact  *StructFieldInlineRedact
+			PPStructFieldInlineRedact **StructFieldInlineRedact
 			StructFieldInlinePRedact  StructFieldInlinePRedact
 			PStructFieldInlinePRedact *StructFieldInlinePRedact
 			MapFieldInlineRedactKeys  map[MapKey]struct{}
@@ -55,6 +63,35 @@ func TestRedact_struct(t *testing.T) {
 			PArray                    *[1]MapKey
 			PArrayP                   *[1]*MapKey
 			ArrayP                    [1]*MapKey
+			PMapArrayKey              *map[[1]MapKey]struct{}
+			PMapPArrayKey             *map[*[1]MapKey]struct{}
+			PMapPArrayPKey            *map[*[1]*MapKey]struct{}
+			SliceMapEl                []map[MapKey]struct{}
+			PSliceMapEl               *[]map[MapKey]struct{}
+			SliceMapElPKey            []map[*MapKey]struct{}
+			PSliceMapElPKey           *[]map[*MapKey]struct{}
+			MapSliceElem              map[string][]StructFieldInlineRedact
+			PMapSliceElem             *map[string][]StructFieldInlineRedact
+			MapPSliceElem             map[string]*[]StructFieldInlineRedact
+			PMapPSliceElem            *map[string]*[]StructFieldInlineRedact
+			MapSlicePElem             map[string][]*StructFieldInlineRedact
+			PMapSlicePElem            *map[string][]*StructFieldInlineRedact
+			MapPSlicePElem            map[string]*[]*StructFieldInlineRedact
+			PMapPSlicePElem           *map[string]*[]*StructFieldInlineRedact
+			Arr                       [1]StructFieldInlineRedact
+			PArr                      *[1]StructFieldInlineRedact
+			ArrP                      [1]*StructFieldInlineRedact
+			PArrP                     *[1]*StructFieldInlineRedact
+			PPSlice                   **[]StructFieldInlineRedact
+			PPSliceP                  **[]*StructFieldInlineRedact
+			MapMap                    map[string]map[string]StructFieldInlineRedact
+			PMapMap                   *map[string]map[string]StructFieldInlineRedact
+			MapPMap                   map[string]*map[string]StructFieldInlineRedact
+			PMapPMap                  *map[string]*map[string]StructFieldInlineRedact
+			MapMapP                   map[string]map[string]*StructFieldInlineRedact
+			PMapMapP                  *map[string]map[string]*StructFieldInlineRedact
+			MapPMapP                  map[string]*map[string]*StructFieldInlineRedact
+			PMapPMapP                 *map[string]*map[string]*StructFieldInlineRedact
 		}
 	)
 
@@ -137,6 +174,209 @@ func TestRedact_struct(t *testing.T) {
 			F1: "123",
 			F3: "321",
 		}},
+		PMapArrayKey: &map[[1]MapKey]struct{}{
+			{{
+				F1: "123",
+				F3: "321",
+			}}: {},
+		},
+		PMapPArrayKey: &map[*[1]MapKey]struct{}{
+			{{
+				F1: "123",
+				F3: "321",
+			}}: {},
+		},
+		PMapPArrayPKey: &map[*[1]*MapKey]struct{}{
+			{{
+				F1: "123",
+				F3: "321",
+			}}: {},
+		},
+		SliceMapEl: []map[MapKey]struct{}{
+			{
+				MapKey{
+					F1: "123",
+					F3: "321",
+				}: {},
+			},
+		},
+		PSliceMapEl: &[]map[MapKey]struct{}{
+			{
+				MapKey{
+					F1: "123",
+					F3: "321",
+				}: {},
+			},
+		},
+		SliceMapElPKey: []map[*MapKey]struct{}{
+			{
+				&MapKey{
+					F1: "123",
+					F3: "321",
+				}: {},
+			},
+		},
+		PSliceMapElPKey: &[]map[*MapKey]struct{}{
+			{
+				&MapKey{
+					F1: "123",
+					F3: "321",
+				}: {},
+			},
+		},
+		MapSliceElem: map[string][]StructFieldInlineRedact{
+			"k": {
+				{
+					F1: "123",
+				},
+			},
+		},
+		PMapSliceElem: &map[string][]StructFieldInlineRedact{
+			"k": {
+				{
+					F1: "123",
+				},
+			},
+		},
+		MapPSliceElem: map[string]*[]StructFieldInlineRedact{
+			"k": {
+				{
+					F1: "123",
+				},
+			},
+		},
+		PMapPSliceElem: &map[string]*[]StructFieldInlineRedact{
+			"k": {
+				{
+					F1: "123",
+				},
+			},
+		},
+		MapSlicePElem: map[string][]*StructFieldInlineRedact{
+			"k": {
+				{
+					F1: "123",
+				},
+			},
+		},
+		PMapSlicePElem: &map[string][]*StructFieldInlineRedact{
+			"k": {
+				{
+					F1: "123",
+				},
+			},
+		},
+		MapPSlicePElem: map[string]*[]*StructFieldInlineRedact{
+			"k": {
+				{
+					F1: "123",
+				},
+			},
+		},
+		PMapPSlicePElem: &map[string]*[]*StructFieldInlineRedact{
+			"k": {
+				{
+					F1: "123",
+				},
+			},
+		},
+		Arr: [1]StructFieldInlineRedact{
+			{
+				F1: "123",
+			},
+		},
+		PArr: vToP([1]StructFieldInlineRedact{
+			{
+				F1: "123",
+			},
+		}),
+		ArrP: [1]*StructFieldInlineRedact{
+			{
+				F1: "123",
+			},
+		},
+		PArrP: vToP([1]*StructFieldInlineRedact{
+			{
+				F1: "123",
+			},
+		}),
+		PPSlice: vToP(vToP([]StructFieldInlineRedact{
+			{
+				F1: "123",
+			},
+		})),
+
+		PPSliceP: vToP(vToP([]*StructFieldInlineRedact{
+			{
+				F1: "123",
+			},
+		})),
+		PPStructFieldInlineRedact: vToP(&StructFieldInlineRedact{
+			F1: "123",
+		}),
+		MapMap: map[string]map[string]StructFieldInlineRedact{
+			"k": {
+				"k": {
+					F1: "123",
+				},
+			},
+		},
+		PMapMap: &map[string]map[string]StructFieldInlineRedact{
+			"k": {
+				"k": {
+					F1: "123",
+				},
+			},
+		},
+		MapPMap: map[string]*map[string]StructFieldInlineRedact{
+			"k": {
+				"k": {
+					F1: "123",
+				},
+			},
+		},
+		PMapPMap: &map[string]*map[string]StructFieldInlineRedact{
+			"k": {
+				"k": {
+					F1: "123",
+				},
+			},
+		},
+		MapMapP: map[string]map[string]*StructFieldInlineRedact{
+			"k": {
+				"k": {
+					F1: "123",
+				},
+			},
+		},
+		PMapMapP: &map[string]map[string]*StructFieldInlineRedact{
+			"k": {
+				"k": {
+					F1: "123",
+				},
+			},
+		},
+		MapPMapP: map[string]*map[string]*StructFieldInlineRedact{
+			"k": {
+				"k": {
+					F1: "123",
+				},
+			},
+		},
+		PMapPMapP: &map[string]*map[string]*StructFieldInlineRedact{
+			"k": {
+				"k": {
+					F1: "123",
+				},
+			},
+		},
+		MapRedact: map[MapKey]struct{}{
+			{
+				F1: "123",
+			}: {},
+		},
+		SliceRedact: []StructField{{}},
+		ArrRedact:   [1]StructField{{}},
 	}
 	testStrCpy := testStr
 
@@ -190,6 +430,149 @@ func TestRedact_struct(t *testing.T) {
 		ArrayP: [1]*MapKey{{
 			F3: "321",
 		}},
+		PMapArrayKey: &map[[1]MapKey]struct{}{
+			{{
+				F3: "321",
+			}}: {},
+		},
+		PMapPArrayKey: &map[*[1]MapKey]struct{}{
+			{{
+				F3: "321",
+			}}: {},
+		},
+		PMapPArrayPKey: &map[*[1]*MapKey]struct{}{
+			{{
+				F3: "321",
+			}}: {},
+		},
+		SliceMapEl: []map[MapKey]struct{}{
+			{
+				MapKey{
+					F3: "321",
+				}: {},
+			},
+		},
+		PSliceMapEl: &[]map[MapKey]struct{}{
+			{
+				MapKey{
+					F3: "321",
+				}: {},
+			},
+		},
+		SliceMapElPKey: []map[*MapKey]struct{}{
+			{
+				&MapKey{
+					F3: "321",
+				}: {},
+			},
+		},
+		PSliceMapElPKey: &[]map[*MapKey]struct{}{
+			{
+				&MapKey{
+					F3: "321",
+				}: {},
+			},
+		},
+		MapSliceElem: map[string][]StructFieldInlineRedact{
+			"k": {
+				{},
+			},
+		},
+		PMapSliceElem: &map[string][]StructFieldInlineRedact{
+			"k": {
+				{},
+			},
+		},
+		MapPSliceElem: map[string]*[]StructFieldInlineRedact{
+			"k": {
+				{},
+			},
+		},
+		PMapPSliceElem: &map[string]*[]StructFieldInlineRedact{
+			"k": {
+				{},
+			},
+		},
+		MapSlicePElem: map[string][]*StructFieldInlineRedact{
+			"k": {
+				{},
+			},
+		},
+		PMapSlicePElem: &map[string][]*StructFieldInlineRedact{
+			"k": {
+				{},
+			},
+		},
+		MapPSlicePElem: map[string]*[]*StructFieldInlineRedact{
+			"k": {
+				{},
+			},
+		},
+		PMapPSlicePElem: &map[string]*[]*StructFieldInlineRedact{
+			"k": {
+				{},
+			},
+		},
+		Arr: [1]StructFieldInlineRedact{
+			{},
+		},
+		PArr: vToP([1]StructFieldInlineRedact{
+			{},
+		}),
+		ArrP: [1]*StructFieldInlineRedact{
+			{},
+		},
+		PArrP: vToP([1]*StructFieldInlineRedact{
+			{},
+		}),
+		PPSlice: vToP(vToP([]StructFieldInlineRedact{
+			{},
+		})),
+
+		PPSliceP: vToP(vToP([]*StructFieldInlineRedact{
+			{},
+		})),
+		PPStructFieldInlineRedact: vToP(&StructFieldInlineRedact{}),
+		MapMap: map[string]map[string]StructFieldInlineRedact{
+			"k": {
+				"k": {},
+			},
+		},
+		PMapMap: &map[string]map[string]StructFieldInlineRedact{
+			"k": {
+				"k": {},
+			},
+		},
+		MapPMap: map[string]*map[string]StructFieldInlineRedact{
+			"k": {
+				"k": {},
+			},
+		},
+		PMapPMap: &map[string]*map[string]StructFieldInlineRedact{
+			"k": {
+				"k": {},
+			},
+		},
+		MapMapP: map[string]map[string]*StructFieldInlineRedact{
+			"k": {
+				"k": {},
+			},
+		},
+		PMapMapP: &map[string]map[string]*StructFieldInlineRedact{
+			"k": {
+				"k": {},
+			},
+		},
+		MapPMapP: map[string]*map[string]*StructFieldInlineRedact{
+			"k": {
+				"k": {},
+			},
+		},
+		PMapPMapP: &map[string]*map[string]*StructFieldInlineRedact{
+			"k": {
+				"k": {},
+			},
+		},
 	})
 	require.Nil(t, err)
 

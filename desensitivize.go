@@ -61,7 +61,7 @@ func handleSlice(obj reflect.Value) reflect.Value {
 			indexVal.Elem().Set(redactedVal)
 		case reflect.Map:
 			redactedVal := handleMap(indexVal)
-			indexVal.Elem().Set(redactedVal)
+			indexVal.Set(redactedVal)
 		}
 	}
 
@@ -111,8 +111,8 @@ func handlePointer(obj reflect.Value) reflect.Value {
 	case reflect.Struct:
 		return redact(obj.Elem())
 	case reflect.Pointer:
-		redactedValue := handlePointer(obj)
-		tmpObj := reflect.New(objType)
+		redactedValue := handlePointer(obj.Elem())
+		tmpObj := reflect.New(redactedValue.Type())
 		tmpObj.Elem().Set(redactedValue)
 		return tmpObj
 	case reflect.Slice:
@@ -121,7 +121,10 @@ func handlePointer(obj reflect.Value) reflect.Value {
 		tmpObj.Elem().Set(redactedValue)
 		return tmpObj
 	case reflect.Map:
-		return handleMap(obj)
+		redactedValue := handleMap(obj)
+		tmpObj := reflect.New(objType.Elem())
+		tmpObj.Elem().Set(redactedValue)
+		return tmpObj
 	case reflect.Array:
 		redactedValue := handleArray(obj.Elem())
 		tmpObj := reflect.New(objType.Elem())
