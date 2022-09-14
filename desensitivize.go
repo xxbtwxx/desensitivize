@@ -34,7 +34,7 @@ func Redact[T any](obj T) T {
 	case reflect.Map:
 		return handleMap(objValue).Interface().(T)
 	case reflect.Array:
-		return handleArray(objValue).Interface().(T)
+		return *handleArray(objValue).Interface().(*T)
 	}
 
 	return obj

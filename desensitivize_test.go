@@ -579,6 +579,28 @@ func TestRedact_struct(t *testing.T) {
 	require.Equal(t, expectedBuf.String(), redactedBuf.String())
 
 	require.Equal(t, testStr, testStrCpy)
+
+	testSlice := []TestStruct{{}}
+	Redact(testSlice)
+	Redact(&testSlice)
+	Redact(vToP(&testSlice))
+
+	testArr := [1]TestStruct{{}}
+	Redact(testArr)
+	Redact(&testArr)
+	Redact(vToP(&testArr))
+
+	testMap := map[string]TestStruct{
+		"k": {},
+	}
+	Redact(testMap)
+	Redact(&testMap)
+	Redact(vToP(&testMap))
+
+	testP := &TestStruct{}
+	Redact(testP)
+	Redact(&testP)
+	Redact(vToP(&testP))
 }
 
 func vToP[T any](v T) *T {
