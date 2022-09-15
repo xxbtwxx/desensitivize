@@ -8,11 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Func() {
-
-}
-
-func TestRedact_struct(t *testing.T) {
+func TestRedact(t *testing.T) {
 	type (
 		StructField struct {
 			F1 string
@@ -92,6 +88,14 @@ func TestRedact_struct(t *testing.T) {
 			PMapMapP                  *map[string]map[string]*StructFieldInlineRedact
 			MapPMapP                  map[string]*map[string]*StructFieldInlineRedact
 			PMapPMapP                 *map[string]*map[string]*StructFieldInlineRedact
+			SliceSlice                [][]StructFieldInlineRedact
+			SliceArr                  [][1]StructFieldInlineRedact
+			MapArray                  map[string][1]StructFieldInlineRedact
+			EmptySlice                []StructFieldInlineRedact
+			ArrArr                    [1][1]StructFieldInlineRedact
+			ArrSlice                  [1][]StructFieldInlineRedact
+			ArrMap                    [1]map[MapKey]StructField
+			SlicePPPEl                []***StructFieldInlineRedact
 		}
 	)
 
@@ -377,6 +381,45 @@ func TestRedact_struct(t *testing.T) {
 		},
 		SliceRedact: []StructField{{}},
 		ArrRedact:   [1]StructField{{}},
+		SliceSlice: [][]StructFieldInlineRedact{
+			{
+				{
+					F1: "123",
+				},
+			},
+		},
+		SliceArr: [][1]StructFieldInlineRedact{
+			{
+				{
+					F1: "123",
+				},
+			},
+		},
+		MapArray: map[string][1]StructFieldInlineRedact{
+			"k": {
+				{
+					F1: "123",
+				},
+			},
+		},
+		ArrArr: [1][1]StructFieldInlineRedact{{
+			{
+				F1: "123",
+			},
+		}},
+		ArrSlice: [1][]StructFieldInlineRedact{{
+			{
+				F1: "123",
+			},
+		}},
+		ArrMap: [1]map[MapKey]StructField{
+			{
+				MapKey{F1: "123"}: {},
+			},
+		},
+		SlicePPPEl: []***StructFieldInlineRedact{vToP(vToP(&StructFieldInlineRedact{
+			F1: "123",
+		}))},
 	}
 	testStrCpy := testStr
 
@@ -573,6 +616,33 @@ func TestRedact_struct(t *testing.T) {
 				"k": {},
 			},
 		},
+		SliceSlice: [][]StructFieldInlineRedact{
+			{
+				{},
+			},
+		},
+		SliceArr: [][1]StructFieldInlineRedact{
+			{
+				{},
+			},
+		},
+		MapArray: map[string][1]StructFieldInlineRedact{
+			"k": {
+				{},
+			},
+		},
+		ArrArr: [1][1]StructFieldInlineRedact{{
+			{},
+		}},
+		ArrSlice: [1][]StructFieldInlineRedact{{
+			{},
+		}},
+		ArrMap: [1]map[MapKey]StructField{
+			{
+				MapKey{}: {},
+			},
+		},
+		SlicePPPEl: []***StructFieldInlineRedact{vToP(vToP(&StructFieldInlineRedact{}))},
 	})
 	require.Nil(t, err)
 
@@ -601,6 +671,14 @@ func TestRedact_struct(t *testing.T) {
 	Redact(testP)
 	Redact(&testP)
 	Redact(vToP(&testP))
+
+	testString := ""
+	var expected string
+	got := Redact(testString)
+	require.Equal(t, expected, got)
+
+	gotNew := Redact(&testString)
+	require.Equal(t, *gotNew, testString)
 }
 
 func vToP[T any](v T) *T {

@@ -41,6 +41,3 @@ The output of the following code would be the following one
 
 ### Beware
 If you pass a map with `struct` keys which struct has fields marked as `sensitive` it would redact the keys too which may lead to collisions and loss of data
-
-# NOTE
-This package is still in experimental stage and may occasionally throw a panic
