@@ -17,6 +17,7 @@ func TestRedact(t *testing.T) {
 
 		StructFieldInlineRedact struct {
 			F1 string `sensitive:"-"`
+			F2 string
 		}
 
 		StructFieldInlinePRedact struct {
@@ -96,6 +97,14 @@ func TestRedact(t *testing.T) {
 			ArrSlice                  [1][]StructFieldInlineRedact
 			ArrMap                    [1]map[MapKey]StructField
 			SlicePPPEl                []***StructFieldInlineRedact
+		}
+
+		TestObjInt struct {
+			A interface{}
+		}
+
+		TestObjUnexportedField struct {
+			unexported StructFieldInlineRedact
 		}
 	)
 
@@ -679,6 +688,33 @@ func TestRedact(t *testing.T) {
 
 	gotNew := Redact(&testString)
 	require.Equal(t, *gotNew, testString)
+
+	testObjInt := TestObjInt{
+		A: &StructFieldInlineRedact{
+			F1: "123",
+		},
+	}
+	expectedTestObjInt := TestObjInt{
+		A: nil,
+	}
+
+	redactedtestObjInt := Redact(testObjInt)
+	require.Equal(t, expectedTestObjInt, redactedtestObjInt)
+
+	var invalidObj interface{}
+	Redact(invalidObj)
+
+	testObjUnex := TestObjUnexportedField{
+		unexported: StructFieldInlineRedact{
+			F1: "123",
+			F2: "321",
+		},
+	}
+	redactedTestObjUnex := Redact(testObjUnex)
+	expectedTestObjUnex := TestObjUnexportedField{
+		unexported: StructFieldInlineRedact{},
+	}
+	require.Equal(t, expectedTestObjUnex, redactedTestObjUnex)
 }
 
 func vToP[T any](v T) *T {

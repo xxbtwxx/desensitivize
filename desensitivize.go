@@ -21,6 +21,10 @@ func Redact[T any](obj T) T {
 	objCopy := copyObj(obj)
 
 	objValue := reflect.ValueOf(objCopy)
+	if !objValue.IsValid() {
+		return obj
+	}
+
 	objType := objValue.Type()
 	objKind := objType.Kind()
 
@@ -187,6 +191,10 @@ func handleStruct(obj reflect.Value) reflect.Value {
 	for i := 0; i < objType.Elem().NumField(); i++ {
 		fieldVal := obj.Elem().Field(i)
 
+		if !fieldVal.CanSet() {
+			continue
+		}
+
 		if _, exist := objType.Elem().Field(i).Tag.Lookup("sensitive"); exist {
 			fieldVal.Set(reflect.Zero(fieldVal.Type()))
 			continue
@@ -195,8 +203,7 @@ func handleStruct(obj reflect.Value) reflect.Value {
 		fieldKind := fieldVal.Kind()
 		switch fieldKind {
 		case reflect.Struct:
-			redactedVal := handleStruct(fieldVal)
-			fieldVal.Set(redactedVal.Elem())
+			fieldVal.Set(handleStruct(fieldVal).Elem())
 		case reflect.Slice:
 			fieldVal.Set(handleSlice(fieldVal))
 		case reflect.Map:
