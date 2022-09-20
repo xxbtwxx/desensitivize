@@ -16,7 +16,7 @@ jobs:
     - name: Test package
       uses: actions/setup-go@v3
       with:
-        go-version: 1.19
+        go-version: 1.18
         
     - name: Run tests
-      run: go test -v ./...
+      run: go test -v -p=1 -count=1 ./...

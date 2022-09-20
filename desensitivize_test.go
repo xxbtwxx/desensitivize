@@ -3,12 +3,15 @@ package desensitivize
 import (
 	"bytes"
 	"encoding/gob"
+	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestRedact(t *testing.T) {
+	customRedacts = map[reflect.Type]redactMeta{}
+
 	type (
 		StructField struct {
 			F1 string
@@ -719,4 +722,115 @@ func TestRedact(t *testing.T) {
 
 func vToP[T any](v T) *T {
 	return &v
+}
+
+func TestSetDefaultRedact(t *testing.T) {
+	customRedacts = map[reflect.Type]redactMeta{}
+
+	type (
+		RedactObj struct {
+			F1 string
+		}
+
+		RedactStruct struct {
+			F1 RedactObj `sensitive:"-"`
+		}
+	)
+
+	defValue := RedactObj{
+		F1: "[REDACTED]",
+	}
+
+	SetDefaultRedact(defValue)
+
+	obj := RedactStruct{
+		F1: RedactObj{
+			"SomeVal",
+		},
+	}
+
+	redacted := Redact(obj)
+	require.Equal(t, RedactStruct{F1: defValue}, redacted)
+}
+
+func TestSetCustomRedact(t *testing.T) {
+	customRedacts = map[reflect.Type]redactMeta{}
+
+	type (
+		RedactObj struct {
+			F1 string
+		}
+
+		RedactStruct struct {
+			F1 RedactObj `sensitive:"customValue"`
+		}
+	)
+
+	custValue := RedactObj{
+		F1: "[REDACTED]",
+	}
+
+	SetCustomRedact("customValue", custValue)
+
+	obj := RedactStruct{
+		F1: RedactObj{
+			"SomeVal",
+		},
+	}
+
+	redacted := Redact(obj)
+	require.Equal(t, RedactStruct{F1: custValue}, redacted)
+}
+
+func TestDefCustomRedact(t *testing.T) {
+	customRedacts = map[reflect.Type]redactMeta{}
+
+	type (
+		RedactObj struct {
+			F1 string
+		}
+
+		RedactStruct struct {
+			F1 RedactObj `sensitive:"customValue"`
+			F2 RedactObj `sensitive:"defValue"`
+		}
+	)
+
+	custValue := RedactObj{
+		F1: "[REDACTED]",
+	}
+	defValue := RedactObj{
+		F1: "[DEFAULT]",
+	}
+
+	SetCustomRedact("customValue", custValue)
+	SetDefaultRedact(defValue)
+
+	obj := RedactStruct{
+		F1: RedactObj{
+			"SomeVal",
+		},
+		F2: RedactObj{
+			"OtherVal",
+		},
+	}
+
+	redacted := Redact(obj)
+	require.Equal(t, RedactStruct{F1: custValue, F2: defValue}, redacted)
+
+	customRedacts = map[reflect.Type]redactMeta{}
+	SetDefaultRedact(defValue)
+	SetCustomRedact("customValue", custValue)
+
+	obj = RedactStruct{
+		F1: RedactObj{
+			"SomeVal",
+		},
+		F2: RedactObj{
+			"OtherVal",
+		},
+	}
+
+	redacted = Redact(obj)
+	require.Equal(t, RedactStruct{F1: custValue, F2: defValue}, redacted)
 }

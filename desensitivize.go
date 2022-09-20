@@ -6,6 +6,47 @@ import (
 	"reflect"
 )
 
+type redactMeta struct {
+	defaultVal   reflect.Value
+	specificVals map[string]reflect.Value
+}
+
+var customRedacts map[reflect.Type]redactMeta
+
+func init() {
+	customRedacts = map[reflect.Type]redactMeta{}
+}
+
+func SetDefaultRedact[T any](val T) {
+	valType := reflect.TypeOf(val)
+
+	meta, exist := customRedacts[valType]
+	if !exist {
+		meta = redactMeta{
+			specificVals: map[string]reflect.Value{},
+			defaultVal:   reflect.Value{},
+		}
+	}
+
+	meta.defaultVal = reflect.ValueOf(val)
+	customRedacts[valType] = meta
+}
+
+func SetCustomRedact[T any](key string, val T) {
+	valType := reflect.TypeOf(val)
+
+	meta, exist := customRedacts[valType]
+	if !exist {
+		meta = redactMeta{
+			specificVals: map[string]reflect.Value{},
+			defaultVal:   reflect.Value{},
+		}
+	}
+
+	meta.specificVals[key] = reflect.ValueOf(val)
+	customRedacts[valType] = meta
+}
+
 func copyObj[T any](obj T) (objCopy T) {
 	var buf bytes.Buffer
 	enc := gob.NewEncoder(&buf)
@@ -195,8 +236,24 @@ func handleStruct(obj reflect.Value) reflect.Value {
 			continue
 		}
 
-		if _, exist := objType.Elem().Field(i).Tag.Lookup("sensitive"); exist {
-			fieldVal.Set(reflect.Zero(fieldVal.Type()))
+		if tag, exist := objType.Elem().Field(i).Tag.Lookup("sensitive"); exist {
+			fieldType := fieldVal.Type()
+			var setVal reflect.Value
+			meta, exists := customRedacts[fieldType]
+			if !exists {
+				setVal = reflect.Zero(fieldType)
+			}
+
+			specificValue, exists := meta.specificVals[tag]
+			if !exists && meta.defaultVal != (reflect.Value{}) {
+				setVal = meta.defaultVal
+			}
+
+			if exists {
+				setVal = specificValue
+			}
+
+			fieldVal.Set(setVal)
 			continue
 		}
 
